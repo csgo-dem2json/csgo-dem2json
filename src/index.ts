@@ -1,9 +1,15 @@
-// @TODO: Buy/Economy events?
-// @TODO: Player matchStats in each round end?
+/*
+ * @TODO: Buy/Economy events?
+ * @TODO: Player matchStats in each round end?
+ *
+ * gameEvents
+ * https://gitlab.com/ghostanalysis/csgo-demo-parser/blob/master/misc/example-events.md
+ * https://wiki.alliedmods.net/Counter-Strike:_Global_Offensive_Events
+ */
 
 import * as demofile from "demofile";
 import * as fs from "fs";
-import { ICCSUsrMsg_SayText, ICCSUsrMsg_SayText2, } from "demofile/src/protobufs/cstrike15_usermessages";
+import { ICCSUsrMsg_SayText, ICCSUsrMsg_SayText2 } from "demofile/src/protobufs/cstrike15_usermessages";
 import { md5FileSync } from "./md5FileSync";
 import { unfiredEvents } from "./unfired_events";
 
@@ -88,12 +94,6 @@ demo.on("end", () => {
   );
 });
 
-/*
-demo.conVars.on("change", e => {
-  log("%s: %s -> %s", e.name, e.oldValue, e.value);
-});
-*/
-
 demo.on("tickend", () => {
   if (tickFlashbangDetonate) {
     tickFlashbangDetonate.players_blind = tickPlayersBlind;
@@ -112,12 +112,8 @@ demo.on("tickend", () => {
   tickPlayersHEHurt = [];
 });
 
-// userMessages
-/*
-demo.userMessages.on("TextMsg", (e: ICCSUsrMsg_TextMsg) => {
-  log("TextMsg", e);
-});
-*/
+// demo.conVars.on("change", e => { log("%s: %s -> %s", e.name, e.oldValue, e.value); });
+// demo.userMessages.on("TextMsg", (e: ICCSUsrMsg_TextMsg) => { log("TextMsg", e); });
 
 demo.userMessages.on("SayText", (e: ICCSUsrMsg_SayText) => {
   demoDump.events.push(EventFactory.SayText(demo, e));
@@ -127,12 +123,6 @@ demo.userMessages.on("SayText2", (e: ICCSUsrMsg_SayText2) => {
   demoDump.events.push(EventFactory.SayText2(demo, e));
 });
 
-/*
- * gameEvents
- * https://gitlab.com/ghostanalysis/csgo-demo-parser/blob/master/misc/example-events.md
- * https://wiki.alliedmods.net/Counter-Strike:_Global_Offensive_Events
- */
-
 // Some events possibly never fired?
 demo.gameEvents.on("event", (e) => {
   if (unfiredEvents.includes(e.name)) {
@@ -141,7 +131,6 @@ demo.gameEvents.on("event", (e) => {
 });
 
 // Events that do get fired.
-
 demo.gameEvents.on("bomb_begindefuse", (e: demofile.IEventBombBegindefuse) => {
   demoDump.events.push(EventFactory.BombBeginDefuse(demo, e));
 });
