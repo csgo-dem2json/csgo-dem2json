@@ -8,9 +8,9 @@
  */
 
 import * as demofile from "demofile";
-import * as fs from "fs";
+// import * as fs from "fs";
 import { ICCSUsrMsg_SayText, ICCSUsrMsg_SayText2 } from "demofile/src/protobufs/cstrike15_usermessages";
-import { md5FileSync } from "./md5FileSync";
+// import { md5FileSync } from "./md5FileSync";
 import { unfiredEvents } from "./unfired_events";
 
 import * as c from "./constants";
@@ -21,27 +21,102 @@ import * as events from "./interfaces/events";
 
 const log = console.log;
 
-if (process.argv.length < 3) {
-  log("Specify the full path to a demo & optional output path");
-  log("e.g.: ./index.js ~/test.dem ~/output.json");
+// if (process.argv.length < 3) {
+//   log("Specify the full path to a demo & optional output path");
+//   log("e.g.: ./index.js ~/test.dem ~/output.json");
 
-  process.exit(1);
+//   process.exit(1);
+// }
+
+declare global {
+  interface Window {
+    demofile: any
+  }
 }
-
-const demoPath: string = process.argv[2];
-const outputPath: string = process.argv.length === 4 ? process.argv[3] : process.argv[2].replace(".dem", ".json");
 
 const demo = new demofile.DemoFile();
 
-console.time("parseDemo");
-fs.readFile(demoPath, (err: NodeJS.ErrnoException | null, buffer: Buffer) => {
-  if (err) {
-    throw err;
-  }
+function download(filename: string, text: string) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', filename);
 
-  log(`Processing ${demoPath} to ${outputPath}`);
-  demo.parse(buffer);
-});
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+}
+
+window.onload = function () {
+  var downloadButton: HTMLInputElement = document.getElementById("downloadButton") as HTMLInputElement;
+  var fileInput: HTMLInputElement = document.getElementById("fileInput") as HTMLInputElement;
+  downloadButton.disabled = true;
+  log("window loaded");
+
+  fileInput.addEventListener("change", function (_: any) {
+    log("fileInput changed");
+    if (fileInput === null || fileInput.files === null) {
+      throw new Error("fileInput is null");
+    }
+    var file = fileInput.files[0];
+    var reader = new FileReader();
+    log(file);
+    reader.onload = function (_: any) {
+      // // var demo = new window.demofile.DemoFile();
+      // demo.on("start", function () {
+      //   console.log("Game started on", demo.header.mapName);
+      // });
+      // demo.on("end", function () {
+      //   console.timeEnd("parseDemo");
+      //   console.log("Parsing completed");
+      // });
+      // console.time("parseDemo");
+      // Top level demo events
+      demo.on("end", () => {
+        log("Demo completed");
+        console.timeEnd("parseDemo");
+
+        if (downloadButton !== null) {
+          downloadButton.disabled = false;
+          downloadButton.addEventListener("click", function(){
+              // Generate download of hello.txt file with some content
+              var filename = "demo.json";
+
+              download(filename, JSON.stringify(demoDump, undefined, 2));
+          }, false);
+        }
+
+        // fs.writeFile(
+        //   outputPath,
+        //   JSON.stringify(demoDump, undefined, 2),
+        //   (writeErr: NodeJS.ErrnoException | null) => {
+        //     if (writeErr) {
+        //       throw writeErr;
+        //     }
+
+        //     log("Output saved: ", outputPath);
+        //   },
+        // );
+      });
+
+      demo.parse(reader.result as Buffer);
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+};
+
+console.time("parseDemo");
+// fs.readFile(demoPath, (err: NodeJS.ErrnoException | null, buffer: Buffer) => {
+//   if (err) {
+//     throw err;
+//   }
+
+//   log(`Processing ${demoPath} to ${outputPath}`);
+//   demo.parse(buffer);
+// });
 
 // Keeps track of players and when they become unblind (resets between rounds)
 let playersUnblindAt: { [userid: number]: number } = {};
@@ -58,10 +133,13 @@ let tickPlayersHEHurt: events.PlayerHurt[] = [];
 let demoDump: i.DemoDump;
 
 demo.on("start", () => {
+  log("Demo started on " + demo.header.mapName);
   demoDump = {
     client_name: demo.header.clientName,
     events: [],
-    hash: md5FileSync(demoPath),
+    // TODO(@zoidbergwill): ya nerd
+    // hash: md5FileSync(demoPath),
+    hash: "TODO",
     map_name: demo.header.mapName,
     network_protocol: demo.header.networkProtocol,
     parsed_at: new Date(),
@@ -75,23 +153,6 @@ demo.on("start", () => {
     server_name: demo.header.serverName,
     signon_length: demo.header.signonLength,
   };
-});
-
-// Top level demo events
-demo.on("end", () => {
-  console.timeEnd("parseDemo");
-
-  fs.writeFile(
-    outputPath,
-    JSON.stringify(demoDump, undefined, 2),
-    (writeErr: NodeJS.ErrnoException | null) => {
-      if (writeErr) {
-        throw writeErr;
-      }
-
-      log("Output saved: ", outputPath);
-    },
-  );
 });
 
 demo.on("tickend", () => {
@@ -124,7 +185,7 @@ demo.userMessages.on("SayText2", (e: ICCSUsrMsg_SayText2) => {
 });
 
 // Some events possibly never fired?
-demo.gameEvents.on("event", (e) => {
+demo.gameEvents.on("event", (e: any) => {
   if (unfiredEvents.includes(e.name)) {
     log(e.name, e);
   }
